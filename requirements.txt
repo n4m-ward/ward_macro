@@ -1,10 +1,8 @@
-pytesseract
-pyautogui
-Pillow
-pyinstaller
 customtkinter
+pyautogui
+keyboard
+Pillow
 pygments
 pywin32
 psutil
-keyboard
 pytesseract
