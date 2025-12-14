@@ -1,0 +1,10 @@
+pytesseract
+pyautogui
+Pillow
+pyinstaller
+customtkinter
+pygments
+pywin32
+psutil
+keyboard
+pytesseract

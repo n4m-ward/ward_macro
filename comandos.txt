@@ -1,0 +1,15 @@
+# Comando para build do WardMacro
+# Execute no PowerShell na pasta do projeto
+
+pyinstaller --noconsole --onefile `
+--add-data "C:\Program Files\Tesseract-OCR;Tesseract-OCR" `
+--name "WardMacro" `
+ward_macro.py
+
+# Notas:
+# - O comando acima inclui toda a pasta Tesseract-OCR (exe, DLLs e tessdata)
+# - O executável será gerado em dist/WardMacro.exe
+# - Tamanho aproximado: ~100MB (devido ao Tesseract + dependências)
+
+# Comando com ícone (se tiver icon.ico):
+# pyinstaller --noconsole --onefile --add-data "C:\Program Files\Tesseract-OCR;Tesseract-OCR" --name "WardMacro" --icon "icon.ico" ward_macro.py
