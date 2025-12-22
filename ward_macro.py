@@ -334,6 +334,8 @@ class WardMacroApp(ctk.CTk):
         self.script_widgets = []
         self.is_running = False
         self.script_threads = []
+        self.script_stop_events = []
+        self.script_executing = {}
         
         self.current_hotkey = "ctrl+f12"
         self.toggle_hotkey = "f6"
@@ -1071,18 +1073,25 @@ class WardMacroApp(ctk.CTk):
         self._disable_controls(True)
         
         self.script_hotkeys = []
+        self.script_stop_events = []
+        self.script_executing = {}
         
         for script in enabled_scripts:
+            script_id = id(script)
+            self.script_executing[script_id] = False
+            stop_event = threading.Event()
+            self.script_stop_events.append(stop_event)
+            
             if script.get("trigger_hotkey"):
                 hotkey = keyboard.add_hotkey(
                     script["trigger_hotkey"],
-                    lambda s=script: self._execute_script_once(s)
+                    lambda s=script, sid=script_id: self._execute_script_once(s, sid)
                 )
                 self.script_hotkeys.append(hotkey)
             else:
                 thread = threading.Thread(
                     target=self._run_script_loop,
-                    args=(script,),
+                    args=(script, script_id, stop_event),
                     daemon=True
                 )
                 self.script_threads.append(thread)
@@ -1090,6 +1099,9 @@ class WardMacroApp(ctk.CTk):
     
     def _stop_scripts(self):
         self.is_running = False
+        
+        self._kill_pending_scripts()
+        
         self.script_threads.clear()
         self.attributes('-topmost', False)
         
@@ -1099,6 +1111,12 @@ class WardMacroApp(ctk.CTk):
             except:
                 pass
         self.script_hotkeys = []
+    
+    def _kill_pending_scripts(self):
+        for event in self.script_stop_events:
+            event.set()
+        self.script_stop_events.clear()
+        self.script_executing.clear()
         
         self.start_btn.configure(
             text=Lang.t("start"),
@@ -1120,9 +1138,15 @@ class WardMacroApp(ctk.CTk):
             widget.edit_btn.configure(state=state)
             widget.delete_btn.configure(state=state)
     
-    def _execute_script_once(self, script):
+    def _execute_script_once(self, script, script_id=None):
         if not self.is_running:
             return
+        
+        if script_id is not None and self.script_executing.get(script_id, False):
+            return
+        
+        if script_id is not None:
+            self.script_executing[script_id] = True
         
         code = script.get("code", "")
         title = script.get("title", "Sem título")
@@ -1156,8 +1180,11 @@ class WardMacroApp(ctk.CTk):
             exec(code, exec_globals)
         except Exception as e:
             print(f"Erro no script '{title}': {e}")
+        finally:
+            if script_id is not None:
+                self.script_executing[script_id] = False
     
-    def _run_script_loop(self, script):
+    def _run_script_loop(self, script, script_id, stop_event):
         interval_sec = script.get("interval_ms", 1000) / 1000.0
         code = script.get("code", "")
         title = script.get("title", "Sem título")
@@ -1183,7 +1210,8 @@ class WardMacroApp(ctk.CTk):
             except Exception as e:
                 print(f"Erro nas variáveis globais: {e}")
         
-        while self.is_running:
+        while self.is_running and not stop_event.is_set():
+            self.script_executing[script_id] = True
             start_time = time.time()
             
             try:
@@ -1194,12 +1222,20 @@ class WardMacroApp(ctk.CTk):
                 exec(code, exec_globals)
             except Exception as e:
                 print(f"Erro no script '{title}': {e}")
+            finally:
+                self.script_executing[script_id] = False
+            
+            if not self.is_running or stop_event.is_set():
+                break
             
             execution_time = time.time() - start_time
             remaining_time = interval_sec - execution_time
             
             if remaining_time > 0:
-                time.sleep(remaining_time)
+                elapsed = 0
+                while elapsed < remaining_time and self.is_running and not stop_event.is_set():
+                    time.sleep(min(0.1, remaining_time - elapsed))
+                    elapsed += 0.1
 
 
 if __name__ == "__main__":

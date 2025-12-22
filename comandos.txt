@@ -13,3 +13,6 @@ ward_macro.py
 
 # Comando com ícone (se tiver icon.ico):
 # pyinstaller --noconsole --onefile --add-data "C:\Program Files\Tesseract-OCR;Tesseract-OCR" --name "WardMacro" --icon "icon.ico" ward_macro.py
+
+# Sem tesseract ( ideal ):
+pyinstaller --noconsole --onefile --name "WardMacro" --icon "icon.ico" ward_macro.py
