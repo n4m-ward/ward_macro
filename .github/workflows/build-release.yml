@@ -32,7 +32,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --onefile --windowed --name "WardMacro" --add-data "helpers;helpers" --add-data "ui;ui" --hidden-import=pygments.lexers.python --hidden-import=pygments.styles --hidden-import=pygments.formatters ward_macro.py
+          pyinstaller --noconsole --onefile --name "WardMacro" --icon "icon.ico" ward_macro.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
